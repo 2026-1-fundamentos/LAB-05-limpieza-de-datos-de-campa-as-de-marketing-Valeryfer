@@ -4,6 +4,9 @@ Escriba el codigo que ejecute la accion solicitada.
 
 # pylint: disable=import-outside-toplevel
 
+import os
+import glob
+import pandas as pd
 
 def clean_campaign_data():
     """
@@ -49,8 +52,120 @@ def clean_campaign_data():
 
 
     """
+    os.makedirs("files/output", exist_ok=True)
 
-    return
+    zip_files = glob.glob("files/input/*.csv.zip")
+
+    df = pd.concat(
+        [pd.read_csv(file, compression="zip") for file in zip_files],
+        ignore_index=True,
+    )
+
+    
+    client = pd.DataFrame()
+
+    client["client_id"] = df["client_id"]
+    client["age"] = df["age"]
+
+    client["job"] = (
+        df["job"]
+        .str.replace(".", "", regex=False)
+        .str.replace("-", "_", regex=False)
+    )
+
+    client["marital"] = df["marital"]
+
+    client["education"] = (
+        df["education"]
+        .str.replace(".", "_", regex=False)
+        .replace("unknown", pd.NA)
+    )
+
+    client["credit_default"] = (
+        df["credit_default"]
+        .eq("yes")
+        .astype(int)
+    )
+
+    client["mortgage"] = (
+        df["mortgage"]
+        .eq("yes")
+        .astype(int)
+    )
+
+   
+    campaign = pd.DataFrame()
+
+    campaign["client_id"] = df["client_id"]
+    campaign["number_contacts"] = df["number_contacts"]
+    campaign["contact_duration"] = df["contact_duration"]
+
+
+    campaign["previous_campaign_contacts"] = (
+        df["previous_campaign_contacts"]
+    )
+
+    campaign["previous_outcome"] = (
+        df["previous_outcome"]
+        .eq("success")
+        .astype(int)
+    )
+
+    campaign["campaign_outcome"] = (
+        df["campaign_outcome"]
+        .eq("yes")
+        .astype(int)
+    )
+
+    months = {
+        "jan": "01",
+        "feb": "02",
+        "mar": "03",
+        "apr": "04",
+        "may": "05",
+        "jun": "06",
+        "jul": "07",
+        "aug": "08",
+        "sep": "09",
+        "oct": "10",
+        "nov": "11",
+        "dec": "12",
+    }
+
+    campaign["last_contact_date"] = (
+        "2022-"
+        + df["month"].map(months)
+        + "-"
+        + df["day"].astype(str).str.zfill(2)
+    )
+
+   
+    economics = pd.DataFrame()
+
+    economics["client_id"] = df["client_id"]
+
+    economics["cons_price_idx"] = (
+        df["cons_price_idx"]
+    )
+
+    economics["euribor_three_months"] = (
+        df["euribor_three_months"]
+    )
+
+    client.to_csv(
+        "files/output/client.csv",
+        index=False,
+    )
+
+    campaign.to_csv(
+        "files/output/campaign.csv",
+        index=False,
+    )
+
+    economics.to_csv(
+        "files/output/economics.csv",
+        index=False,
+    )
 
 
 if __name__ == "__main__":
